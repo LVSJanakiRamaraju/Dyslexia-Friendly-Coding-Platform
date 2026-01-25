@@ -52,48 +52,23 @@ const themeClasses = {
       setOutput(result || "Python code executed successfully");
     }
 
-    generateFlowchart(code); // ✅ NOW WORKS
+    // Request accurate flowchart from backend parser
+    try {
+      const resp = await fetch("http://localhost:5000/flowchart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await resp.json();
+      setFlowchart(data.chart || "");
+    } catch (fcErr) {
+      console.error("Flowchart API error", fcErr);
+      setFlowchart("");
+    }
 
   } catch (err) {
     setError(err.message);
   }
-};
-
-
-  const generateFlowchart = (source) => {
-  let chart = "graph TD\n";
-  let id = 0;
-  const next = () => `N${id++}`;
-
-  const sanitize = (text) =>
-    text
-      .replace(/[\[\]\(\)\{\}]/g, "")   // 🔥 remove brackets
-      .replace(/["'`]/g, "")
-      .replace(/console\.log|print/gi, "Output")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 40) || "step";
-
-  const start = next();
-  chart += `${start}([Start])\n`;
-  let prev = start;
-
-  source
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .forEach((line) => {
-      if (line.startsWith("#") || line.startsWith("//")) return;
-
-      const node = next();
-      chart += `${prev} --> ${node}[${sanitize(line)}]\n`;
-      prev = node;
-    });
-
-  const end = next();
-  chart += `${prev} --> ${end}([End])\n`;
-
-  setFlowchart(chart);
 };
 
   return (
