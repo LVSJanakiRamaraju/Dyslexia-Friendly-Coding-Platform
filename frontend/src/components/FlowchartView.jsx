@@ -8,7 +8,13 @@ export default function FlowchartView({ chart }) {
   const { theme } = useContext(AccessibilityContext);
 
 const mermaidTheme =
-  theme === "light" ? "default" : "dark";
+  theme === "light" ? "default" : theme === "high-contrast" ? "dark" : "dark";
+
+const flowchartThemeClasses = {
+  dark: "bg-gray-800 text-white",
+  light: "bg-gray-100 text-gray-900",
+  "high-contrast": "bg-black text-yellow-300",
+};
 
 
   useEffect(() => {
@@ -29,6 +35,12 @@ const mermaidTheme =
 });
 
         initialized.current = true;
+      } else {
+        mermaid.initialize({
+  theme: mermaidTheme,
+  startOnLoad: false,
+  securityLevel: "loose",
+});
       }
 
       const { svg } = await mermaid.render(
@@ -44,13 +56,14 @@ const mermaidTheme =
   };
 
   render();
-}, [chart]);
+}, [chart, theme]);
 
 
   return (
-    <div className="w-96 bg-gray-800 p-4 overflow-auto">
-      <h3 className="font-bold mb-2">Flowchart</h3>
+    <div className={`w-full h-full p-4 overflow-auto ${flowchartThemeClasses[theme]} flex flex-col`}>
+      <h3 className="font-bold mb-2 flex-shrink-0">Flowchart</h3>
       <div
+        className="flex-1 overflow-auto"
         dangerouslySetInnerHTML={{
           __html: svg || "<p>No chart</p>",
         }}

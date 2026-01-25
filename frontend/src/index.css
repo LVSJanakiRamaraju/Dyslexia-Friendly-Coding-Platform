@@ -16,3 +16,18 @@
   font-weight: bold;
   font-style: normal;
 }
+
+/* Select dropdown styling for dark theme */
+select {
+  color-scheme: dark light;
+}
+
+select option {
+  background-color: #1f2937;
+  color: #ffffff;
+}
+
+select option:checked {
+  background: linear-gradient(#4f46e5, #4f46e5);
+  background-color: #4f46e5;
+}

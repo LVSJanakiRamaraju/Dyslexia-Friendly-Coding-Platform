@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState, useRef, useEffect } from "react";
 import { AccessibilityContext } from "../context/AccessibilityContext.jsx";
 import {
   Settings,
@@ -8,7 +8,10 @@ import {
   Volume2,
   Contrast,
   ChevronRight,
+  ChevronLeft,
   Check,
+  X,
+  GripVertical,
 } from "lucide-react";
 
 export default function ControlPanel() {
@@ -19,6 +22,11 @@ export default function ControlPanel() {
     ttsRate, setTtsRate,
     theme, setTheme,
   } = useContext(AccessibilityContext);
+
+  const [isOpen, setIsOpen] = useState(true);
+  const [width, setWidth] = useState(320); // Default 320px (w-80)
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef(null);
 
   const panelTheme = {
     dark: "bg-transparent-900 text-inherit border-current",
@@ -41,9 +49,97 @@ export default function ControlPanel() {
     { value: "'Fira Code', monospace", label: "Fira Code" },
   ];
 
+  // Handle resize
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing || !panelRef.current) return;
+      
+      // Get the position relative to the viewport
+      const newWidth = e.clientX;
+      
+      // Constrain width between 200px and 600px
+      if (newWidth > 200 && newWidth < 600) {
+        setWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = 'auto';
+    };
+
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize';
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = 'auto';
+      };
+    }
+  }, [isResizing]);
+
   return (
-    <div className={`w-80 p-6 border-r overflow-y-auto ${panelTheme[theme]}`}>
-      {/* Header */}
+    <>
+      {/* Toggle Button - Shows when panel is closed */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className={`fixed left-0 top-4 z-50 p-3 rounded-r-lg ${
+            theme === 'dark' ? 'bg-gray-800 text-white hover:bg-gray-700' :
+            theme === 'light' ? 'bg-gray-200 text-gray-900 hover:bg-gray-300' :
+            'bg-black text-yellow-300 hover:bg-gray-900'
+          } border-r border-t border-b transition-all`}
+          aria-label="Open accessibility panel"
+        >
+          <ChevronRight size={20} />
+        </button>
+      )}
+
+      {/* Sidebar Panel */}
+      <div 
+        ref={panelRef}
+        className={`${isOpen ? '' : 'w-0'} transition-all duration-300 overflow-hidden relative p-6 border-r overflow-y-auto ${panelTheme[theme]}`}
+        style={{ width: isOpen ? `${width}px` : '0px' }}
+      >
+        {/* Close Button */}
+        <button
+          onClick={() => setIsOpen(false)}
+          className={`absolute top-4 right-4 p-2 rounded-lg ${
+            theme === 'dark' ? 'hover:bg-gray-700' :
+            theme === 'light' ? 'hover:bg-gray-300' :
+            'hover:bg-gray-900'
+          } transition-colors z-10`}
+          aria-label="Close accessibility panel"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Resize Handle with Icon */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setIsResizing(true);
+          }}
+          className={`absolute top-1/2 -right-4 transform -translate-y-1/2 z-50 p-2 rounded-full cursor-col-resize transition-all ${
+            isResizing 
+              ? (theme === 'dark' ? 'bg-blue-500 scale-125' :
+                 theme === 'light' ? 'bg-blue-500 scale-125' :
+                 'bg-yellow-300 scale-125')
+              : (theme === 'dark' ? 'bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white hover:scale-110 shadow-lg' :
+                 theme === 'light' ? 'bg-gray-300 text-gray-700 hover:bg-blue-400 hover:text-white hover:scale-110 shadow-lg' :
+                 'bg-yellow-400 text-black hover:bg-yellow-300 hover:scale-110 shadow-lg')
+          } select-none`}
+          style={{ cursor: isResizing ? 'col-resize' : 'grab' }}
+          aria-label="Drag to resize panel"
+          title="Drag to resize panel width"
+        >
+          <GripVertical size={20} />
+        </div>
+
+        {/* Header */}
       <div className="mb-8 pb-6 border-b border-current">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -52,7 +148,6 @@ export default function ControlPanel() {
             </div>
             <h2 className="text-xl font-bold">Accessibility</h2>
           </div>
-          <ChevronRight size={20} className="opacity-60" />
         </div>
         <p className="text-sm opacity-70 pl-2">
           Customize your coding experience
@@ -159,6 +254,7 @@ export default function ControlPanel() {
           <code className="ml-4">print("Hi!")</code>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
