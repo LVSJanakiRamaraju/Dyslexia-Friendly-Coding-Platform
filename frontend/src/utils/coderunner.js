@@ -78,8 +78,27 @@ const executePython = async (code) => {
   try {
     const py = await loadLibrary('pyodide', async () => {
       try {
-        const module = await import('https://cdn.jsdelivr.net/pyodide/v0.24.0/full/pyodide.js');
-        return await module.loadPyodide();
+        if (window.loadPyodide) {
+          return await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.0/full/'
+          });
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.0/full/pyodide.js';
+        return new Promise((resolve, reject) => {
+          script.onload = async () => {
+            try {
+              const py = await window.loadPyodide({
+                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.0/full/'
+              });
+              resolve(py);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          script.onerror = () => reject(new Error("Failed to load Pyodide script"));
+          document.head.appendChild(script);
+        });
       } catch (error) {
         console.error("Failed to load Pyodide:", error);
         return null;
@@ -89,12 +108,25 @@ const executePython = async (code) => {
     if (!py) return { success: false, error: "Python runtime initializing... Please try again." };
 
     let output = "";
-    py.globals.set("__builtins__", {
-      ...py.globals.get("__builtins__"),
-      print: (...args) => { output += args.map(arg => String(arg)).join(" ") + "\n"; }
-    });
+    
+    // Capture stdout using Pyodide's runPythonAsync with proper output handling
+    const pythonCode = `
+import sys
+from io import StringIO
+_old_stdout = sys.stdout
+sys.stdout = StringIO()
+try:
+    exec(${JSON.stringify(code)})
+    _output = sys.stdout.getvalue()
+finally:
+    sys.stdout = _old_stdout
+    
+_output
+`;
 
-    await py.runPythonAsync(code);
+    const result = await py.runPythonAsync(pythonCode);
+    output = py.globals.get('_output') || '';
+    
     return { success: true, output: output.trim() || "Code executed successfully" };
   } catch (error) {
     const errorMsg = error.message || String(error);

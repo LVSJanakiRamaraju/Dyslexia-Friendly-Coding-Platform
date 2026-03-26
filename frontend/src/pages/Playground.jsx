@@ -50,6 +50,21 @@ const themeClasses = {
           setExplanation("✓ Code executed successfully!");
         }
         setError("");
+
+        // Generate flowchart for the code
+        try {
+          const flowchartResponse = await fetch("http://localhost:5000/flowchart", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+          });
+          const flowchartData = await flowchartResponse.json();
+          if (flowchartData.chart) {
+            setFlowchart(flowchartData.chart);
+          }
+        } catch (flowchartErr) {
+          console.error("Flowchart generation failed:", flowchartErr);
+        }
       } else {
         setError(result.error || "Execution failed");
         setExplanation("");
