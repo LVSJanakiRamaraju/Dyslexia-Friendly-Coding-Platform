@@ -80,16 +80,16 @@ const executePython = async (code) => {
       try {
         if (window.loadPyodide) {
           return await window.loadPyodide({
-            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.0/full/'
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
           });
         }
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.0/full/pyodide.js';
+        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
         return new Promise((resolve, reject) => {
           script.onload = async () => {
             try {
               const py = await window.loadPyodide({
-                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.0/full/'
+                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
               });
               resolve(py);
             } catch (error) {
@@ -109,24 +109,20 @@ const executePython = async (code) => {
 
     let output = "";
     
-    // Capture stdout using Pyodide's runPythonAsync with proper output handling
-    const pythonCode = `
-import sys
-from io import StringIO
-_old_stdout = sys.stdout
-sys.stdout = StringIO()
-try:
-    exec(${JSON.stringify(code)})
-    _output = sys.stdout.getvalue()
-finally:
-    sys.stdout = _old_stdout
+    // Use Pyodide's standard output capture mechanism
+    py.setStdout({
+      batched: (text) => {
+        output += text;
+      }
+    });
     
-_output
-`;
+    py.setStderr({
+      batched: (text) => {
+        output += text;
+      }
+    });
 
-    const result = await py.runPythonAsync(pythonCode);
-    output = py.globals.get('_output') || '';
-    
+    await py.runPythonAsync(code);
     return { success: true, output: output.trim() || "Code executed successfully" };
   } catch (error) {
     const errorMsg = error.message || String(error);

@@ -13,8 +13,6 @@ const LANGUAGES = {
   javascript: { label: "JavaScript", icon: FileJson },
   typescript: { label: "TypeScript", icon: Code2 },
   html: { label: "HTML/CSS", icon: Palette },
-  sql: { label: "SQL", icon: Database },
-  lua: { label: "Lua", icon: Zap },
 };
 
 const LanguageIcon = ({ language }) => {
@@ -103,8 +101,6 @@ export default function Editor({
             <option value="javascript">JavaScript</option>
             <option value="typescript">TypeScript</option>
             <option value="html">HTML/CSS</option>
-            <option value="sql">SQL</option>
-            <option value="lua">Lua</option>
           </select>
         </div>
 
